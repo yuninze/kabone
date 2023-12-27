@@ -70,7 +70,7 @@ class Gs:
 key="c:/code/gskey.json"
 gs=Gs(key)
 
-def basis(sheet="1y72iPCNF-jeQsg6NS-W83IHdBMy08Ega_CjCE5Rv2Dc",worksheet="data",pp=True):
+def basis(sheet,worksheet="data",pp=True):
     gs.open(sheet)
     gs.select(worksheet)
     data=gs.worksheet.get()
@@ -78,7 +78,7 @@ def basis(sheet="1y72iPCNF-jeQsg6NS-W83IHdBMy08Ega_CjCE5Rv2Dc",worksheet="data",
     
     return data,ima()[1]
 
-def sookso(sheet="15n--rM5LdNbiPktYXXN2VAEC4cIw9xb-xZ8SXeM8bFg",worksheet="sookso",pp=True):
+def sookso(sheet,worksheet="sookso",pp=True):
     gs.open(sheet)
     gs.select(worksheet)
     data=gs.worksheet.get("B3:I100")
