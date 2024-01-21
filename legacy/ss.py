@@ -70,7 +70,7 @@ class Gs:
 key="c:/code/gskey.json"
 gs=Gs(key)
 
-def basis(sheet,worksheet="data",pp=True):
+def basis("1y72iPCNF-jeQsg6NS-W83IHdBMy08Ega_CjCE5Rv2Dc",worksheet="data",pp=True):
     gs.open(sheet)
     gs.select(worksheet)
     data=gs.worksheet.get()
@@ -81,14 +81,13 @@ def basis(sheet,worksheet="data",pp=True):
 def sookso(sheet,worksheet="sookso",pp=True):
     gs.open(sheet)
     gs.select(worksheet)
-    data=gs.worksheet.get("B3:I100")
-    data=pd.DataFrame(data).iloc[:,[1,3,6,7]]
+    data=gs.worksheet.get("A1:F200")
+    data=pd.DataFrame(data).iloc[:,[1,5,6]]
     data.name="sookso"
     data.columns=["idx","contact","desiredDorm","paidDorm"]
     
     if pp:
-        data.iloc[:,0]=data.idx.astype("object")
-        data.iloc[:,1]=data.contact.str.replace("010-","")
+        data.iloc[:,0]=data.idx.astype(int)
     
     return data,ima()[1]
 
@@ -102,8 +101,8 @@ def exec():
     data.to_csv("d:/dg.data.csv",encoding="utf-8")
     this.to_csv("d:/dg.this.csv",encoding="utf-8")
 
-# basis.combine_first(sookso)
+def hideContact(data,key):
+    x=data.apply(lambda q:q[4:] if isinstance(q,str) else np.nan)
 
-# gs.open("1y72iPCNF-jeQsg6NS-W83IHdBMy08Ega_CjCE5Rv2Dc")
-# gs.select("data")
-# gs.update(<pd.DataFrame>)
+    return data
+    
