@@ -3,8 +3,7 @@ import random
 import os
 import pandas as pd
 
-BL="c:/code/mkc.ac.kr/origin.csv"
-BLCOLS=[
+cols=[
     "trainingSemester",
     "idx",
     "trainingClass",
@@ -13,24 +12,63 @@ BLCOLS=[
     "trainingPeriod",
     "name",
     "registerProblem",
-    "klass",
     "trainingTeacher",
-    "trainingTeacherReal",
     "trainingUnit",
-    "address",
-    "contact",
     "trainingGroup",
-    "trainingClassYear",
-    "trainingClassCredit",
-    "trainingClassCreditMoney",
     "trainingLeader",
     "trainingLeaderDepartment",
     "trainingLeaderPosition",
     "trainingLeaderDegree",
     "trainingLeaderRn",
     "trainingLeaderExperience",
+    "trainingClassYear",
+    "trainingClassCredit",
+    "trainingClassCreditMoney",
+    "trainingTeacherReal",
+    "address",
+    "contact",
+    "klass",
     "enc"
 ]
+
+x=pd.read_csv("c:/code/x.csv")
+
+def ppTrData(data):
+
+    incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
+
+    data.loc[:,incomplete]=data.loc[:,incomplete].fillna("#")
+
+    trainingScene=data[[
+        "trainingLeader",
+        "trainingLeaderPosition",
+        "trainingLeaderDegree",
+        "trainingLeaderRn",
+        "trainingLeaderExperience"
+    ]].rename({
+        "trainingLeader":"성명",
+        "trainingLeaderPosition":"직위",
+        "trainingLeaderDegree":"최종학위",
+        "trainingLeaderRn":"간호사 면허 유무",
+        "trainingLeaderExperience":"임상경력"
+    },axis=1)
+
+    q=pd.DataFrame({
+        "연도":"2023",
+        "학기":data.trainingSemester.apply(
+            lambda q:"1" if q.endswith("1") or q.endswith("2.5") else "2"
+        ),
+        "실습기관명":data.trainingCompany,
+        "실습단위":data[["trainingGroup","trainingUnit","trainingLeaderDepartment"]].apply(
+            lambda q:f"{q.iat[0]}({q.iat[1]}/{q.iat[2]})",
+            axis=1
+        ),
+        "교과목명":data.trainingClass
+    })
+
+    q=pd.concat([q,trainingScene],axis=1)
+
+    return q
 
 class TrainingData:
     def __init__(self,data,
@@ -144,16 +182,14 @@ class TrainingData:
         return self._code(direction="out")
 
 def getBySemester(data,semester):
-    return data.loc[:,semester].copy()
+    return data.loc[data.trainingSemester==semester,:].copy()
 
 def getColsOrdered(data,colsOrdered):
     return data.loc[:,colsOrdered].copy()
 
-def pasteClinicalLeader(data,semester,q):
-    indices=["trainingCompany","trainingUnit"]
-    data=getBySemester(data,semester).set_index(indices)
+def pasteClinicalLeader(data,q):
+    indices=["trainingSemester","trainingCompany","trainingUnit"]
+    data=data.set_index(indices)
     q=q.set_index(indices)
     data.update(q,overwrite=True)
-    return data.loc[:,BLCOLS].copy()
-
-origin=pd.read_csv(BL)
+    return data.loc[:,ORIGINCOLS].copy()
