@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pandas as pd
 
@@ -28,58 +27,54 @@ exCol=[
 
 exColTo=[q for q in exCol if q!="name"]
 
-exData=pd.read_csv("c:/code/ex.csv").fillna("q")
+ex=pd.read_csv("../ex.csv").fillna("q")
 
-
-
-indexLength=len(exData.index)
-
-exDataAfter=pd.DataFrame({
-    "seq":[q for q in range(1,len(exData.index)+1)],
+exAfter=pd.DataFrame({
+    "seq":[q for q in range(1,len(ex.index)+1)],
     "major":"간호학과",
-    "idx":exData.idx,
+    "idx":ex.idx,
     "name":np.nan,
-    "chest":exData.chestDate,
-    "chestIx":exData.chest,
-    "havAb":exData[["havAbDate","havAb"]].apply(
+    "chest":ex.chestDate,
+    "chestIx":ex.chest,
+    "havAb":ex[["havAbDate","havAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "hav":exData[["havDate","havDose"]].apply(
+    "hav":ex[["havDate","havDose"]].apply(
         lambda q:f"{q.iat[0]} ({int(q.iat[1])}차)" if isinstance(q.iat[1],float) else f"{q.iat[0]} ({q.iat[1]}차)",
     axis=1),
-    "hbvAb":exData[["hbvAbDate","hbvAb"]].apply(
+    "hbvAb":ex[["hbvAbDate","hbvAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "hbv":exData[["hbvDate","hbvDose"]].apply(
+    "hbv":ex[["hbvDate","hbvDose"]].apply(
         lambda q:f"{q.iat[0]} ({int(q.iat[1])}차)" if isinstance(q.iat[1],float) else f"{q.iat[0]} ({q.iat[1]}차)",
     axis=1),
-    "mmrMeasleAb":exData[["mmrMeasleAbDate","mmrMeasleAb"]].apply(
+    "mmrMeasleAb":ex[["mmrMeasleAbDate","mmrMeasleAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "mmrMumpsAb":exData[["mmrMumpsAbDate","mmrMumpsAb"]].apply(
+    "mmrMumpsAb":ex[["mmrMumpsAbDate","mmrMumpsAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "mmrRubellaAb":exData[["mmrRubellaAbDate","mmrRubellaAb"]].apply(
+    "mmrRubellaAb":ex[["mmrRubellaAbDate","mmrRubellaAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "mmr":exData[["mmrDate","mmrDose"]].apply(
+    "mmr":ex[["mmrDate","mmrDose"]].apply(
         lambda q:f"{q.iat[0]} ({int(q.iat[1])}차)" if isinstance(q.iat[1],float) else f"{q.iat[0]} ({q.iat[1]}차)",
     axis=1),
-    "vzvAb":exData[["vzvAbDate","vzvAb"]].apply(
+    "vzvAb":ex[["vzvAbDate","vzvAb"]].apply(
         lambda q:f"{q.iat[0]} ({q.iat[1]})",
     axis=1),
-    "vzv":exData[["vzvDate","vzvDose"]].apply(
+    "vzv":ex[["vzvDate","vzvDose"]].apply(
         lambda q:f"{q.iat[0]} ({int(q.iat[1])}차)" if isinstance(q.iat[1],float) else f"{q.iat[0]} ({q.iat[1]}차)",
     axis=1),
-    "tdTdap":exData[["tdDate","tdDose"]].apply(
+    "tdTdap":ex[["tdDate","tdDose"]].apply(
         lambda q:f"{q.iat[0]} ({int(q.iat[1])}차)" if isinstance(q.iat[1],float) else f"{q.iat[0]} ({q.iat[1]}차)",
     axis=1),
-    "covid0":exData.covid1,
-    "covid1":exData.covid2,
-    "covid2":exData.covid3.apply(
+    "covid0":ex.covid1,
+    "covid1":ex.covid2,
+    "covid2":ex.covid3.apply(
         lambda q:f"{q[:4]}. {q[5:7]}. {q[8:10]}." if isinstance(q,str) else q
     ),
-    "covid3":exData.covid4
+    "covid3":ex.covid4
 }).loc[:,exColTo].copy().replace(
     {
         "(  )":"",
@@ -92,4 +87,8 @@ exDataAfter=pd.DataFrame({
     lambda q:q.replace("q (","(").replace("\n"," ").replace("q. . .","").replace("(q차)","").replace("차차","차").replace("차추가차","차 추가") if isinstance(q,str) else q
 )
 
-exDataAfter.set_index("idx").join(dm.set_index("idx").loc[:,"name"],rsuffix="_was").reset_index().loc[:,exCol].to_clipboard(index=0)
+dm=pd.read_csv("../dm.csv")
+
+exAfter=exAfter.set_index("idx").join(dm.set_index("idx").loc[:,"name"],rsuffix="_was").reset_index().loc[:,exCol]
+
+exAfter.to_clipboard(index=0)

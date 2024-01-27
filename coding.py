@@ -31,11 +31,20 @@ cols=[
     "enc"
 ]
 
-x=pd.read_csv("c:/code/x.csv")
+def getBySemester(data,semester):
+    return data.loc[data.trainingSemester==semester,:].copy()
+
+def pasteClinicalLeader(data,q):
+    indices=["trainingSemester","trainingCompany","trainingUnit"]
+    data=data.set_index(indices)
+    q=q.set_index(indices)
+    data.update(q,overwrite=True)
+    return data.loc[:,cols]
 
 def ppTrData(data):
-
     incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
+
+    data=data[data.trainingSemester!="3-2.5"].copy()
 
     data.loc[:,incomplete]=data.loc[:,incomplete].fillna("#")
 
@@ -52,6 +61,7 @@ def ppTrData(data):
         "trainingLeaderRn":"간호사 면허 유무",
         "trainingLeaderExperience":"임상경력"
     },axis=1)
+    trainingScene.loc[:,"간호사 면허 유무"]="유"
 
     q=pd.DataFrame({
         "연도":"2023",
@@ -66,30 +76,18 @@ def ppTrData(data):
         "교과목명":data.trainingClass
     })
 
-    q=pd.concat([q,trainingScene],axis=1)
+    indices=["연도","학기","실습기관명","실습단위"]
+
+    q=pd.concat([q,trainingScene],axis=1).sort_values(indices).drop_duplicates(indices,ignore_index=True)
 
     return q
 
 class TrainingData:
     def __init__(self,data,
-        objectColumns=[
-            "idx",
-            "name",
-            "trainingClass",
-            "trainingPeriod",
-            "trainingCompany",
-            "trainingUnit",
-            "trainingTeacher",
-            "address",
-            "contact"
-        ],
         charMapDataPath="c:/code/charMapData.csv"
     ):
-        self.data=data
-        
-        self.cols=objectColumns.copy()
-        if "enc" in self.cols:
-            self.cols.remove("enc")
+        self.data=data.copy()
+        self.cols=self.data.select_dtypes(object).columns
 
         self.charMapDataPath=charMapDataPath
 
@@ -109,7 +107,11 @@ class TrainingData:
             self.charMapInverse=None
             self.sieve=None
         return 
-
+    
+    def __repr__(self):
+        klassName=self.__class__.__name__
+        return f"{klassName}(shape={self.data.shape}, encoded={self.data.enc.all()})"
+    
     def _createCharMap(self):
         if self.encoded==False:
             charIn=list(set(itertools.chain.from_iterable(
@@ -144,7 +146,7 @@ class TrainingData:
                 return 
             except Exception as e:
                 raise Exception(f"{e}")
-        raise Exception("You're trying to save a new mapper irrelevant to current data.")
+        raise Exception("A new mapper is irrelevant to current data.")
     
     def _code(self,direction):
         if direction=="in" and self.encoded:
@@ -180,16 +182,3 @@ class TrainingData:
     
     def decode(self):
         return self._code(direction="out")
-
-def getBySemester(data,semester):
-    return data.loc[data.trainingSemester==semester,:].copy()
-
-def getColsOrdered(data,colsOrdered):
-    return data.loc[:,colsOrdered].copy()
-
-def pasteClinicalLeader(data,q):
-    indices=["trainingSemester","trainingCompany","trainingUnit"]
-    data=data.set_index(indices)
-    q=q.set_index(indices)
-    data.update(q,overwrite=True)
-    return data.loc[:,ORIGINCOLS].copy()
