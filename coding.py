@@ -3,6 +3,7 @@ import random
 import os
 import pandas as pd
 
+
 cols=[
     "trainingSemester",
     "idx",
@@ -31,9 +32,24 @@ cols=[
     "enc"
 ]
 
-def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
-    incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
+colsIncomplete=[
+    "trainingGroup",
+    "trainingUnit",
+    "trainingLeaderDepartment"
+]
 
+viewTrainingSemester={
+    "3-2.5-2022":("2023","3","동계"),
+    "3-1.0-2023":("","",),
+    "3-1.5-2023":("",""),
+    "3-2.0-2023":("",""),
+    "3-2.5-2023":("",""),
+    "4-1.0-2023":("",""),
+    "4-1.5-2023":("",""),
+}
+
+
+def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
     now=data[data.trainingSemester!=exclude].copy()
     fut=data[data.trainingSemester==exclude].copy()
 
@@ -44,11 +60,9 @@ def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
     return {"now":now,"fut":fut}
 
 def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
-    incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
-
     data=data[data.trainingSemester!=exclude].copy()
 
-    data.loc[:,incomplete]=data.loc[:,incomplete].fillna("#")
+    data.loc[:,colsIncomplete]=data.loc[:,colsIncomplete].fillna("#")
 
     trainingScene=data[[
         "trainingLeader",
@@ -84,12 +98,14 @@ def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
 
     return q
 
-class TrainingData:
-    def __init__(self,data,
-        charMapDataPath="c:/code/charMapData.csv"
+
+class Tr:
+    def __init__(self,data,key,
+        charMapDataPath="c:/code/charmapdata.csv"
     ):
         self.data=data.copy()
         self.cols=self.data.select_dtypes(object).columns
+        self.key=key
 
         self.charMapDataPath=charMapDataPath
 
@@ -108,18 +124,22 @@ class TrainingData:
             self.charMap=None
             self.charMapInverse=None
             self.sieve=None
+        
         return 
     
     def __repr__(self):
-        klassName=self.__class__.__name__
-        return f"{klassName}(shape={self.data.shape}, encoded={self.data.enc.all()})"
+        _className=self.__class__.__name__
+        return f"{_className}(shape={self.data.shape}, encoded={self.data.enc.all()})"
     
     def _createCharMap(self):
         if self.encoded==False:
             charIn=list(set(itertools.chain.from_iterable(
                 ["".join(w) for w in [self.data[q].astype(str).unique() for q in self.cols]]
             )))
-            sieve=random.sample(range(len(charIn)),k=len(charIn))
+            
+            gen=np.random.default_rng(seed=key)
+            sieve=gen.choice(len(charIn),size=len(charIn),replace=False)
+            
             charOut=[charIn[q] for q in sieve]
 
             if (len(charIn)==len(charOut)) + (len(charIn)==len(sieve)) < 2:
@@ -128,31 +148,18 @@ class TrainingData:
             self.charMapData=pd.DataFrame(
                 {"charIn":charIn,"charOut":charOut,"sieve":sieve})
         
-        self.getCharMap()
-        return 
-
-    def getCharMap(self):
+            try:
+                self.charMapData.to_csv(self.charMapDataPath,encoding="utf-8",index=0)
+            except Exception as e:
+                raise Exception(f"{e}")
+            
         self.charMap=dict(zip(self.charMapData.charIn,self.charMapData.charOut))
         self.charMapInverse=dict(zip(self.charMap.values(),self.charMap.keys()))
         self.sieve=self.charMapData.sieve.tolist()
-        return 
-    
-    def getNewCharMap(self):
-        self._createCharMap()
-        return 
-    
-    def saveCharMapData(self):
-        if self.encoded==False:
-            try:
-                self.charMapData.to_csv(self.charMapDataPath,encoding="utf-8",index=0)
-                return 
-            except Exception as e:
-                raise Exception(f"{e}")
-        raise Exception("A new mapper is irrelevant to current data.")
     
     def _code(self,direction):
         if direction=="in" and self.encoded:
-            raise Exception("Data already been enc.")
+            raise Exception("Data already been encoded.")
         if direction=="out" and self.encoded==False:
             raise Exception("This isn't encoded data.")
 
@@ -184,6 +191,7 @@ class TrainingData:
     
     def decode(self):
         return self._code(direction="out")
+
 
 ### Hx Methods
 def getBySemester(data,semester):
