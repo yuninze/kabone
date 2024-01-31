@@ -31,20 +31,22 @@ cols=[
     "enc"
 ]
 
-def getBySemester(data,semester):
-    return data.loc[data.trainingSemester==semester,:].copy()
-
-def pasteClinicalLeader(data,q):
-    indices=["trainingSemester","trainingCompany","trainingUnit"]
-    data=data.set_index(indices)
-    q=q.set_index(indices)
-    data.update(q,overwrite=True)
-    return data.loc[:,cols]
-
-def ppTrData(data):
+def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
     incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
 
-    data=data[data.trainingSemester!="3-2.5"].copy()
+    now=data[data.trainingSemester!=exclude].copy()
+    fut=data[data.trainingSemester==exclude].copy()
+
+    q=pd.DataFrame({
+        
+    })
+
+    return {"now":now,"fut":fut}
+
+def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
+    incomplete=["trainingGroup","trainingUnit","trainingLeaderDepartment"]
+
+    data=data[data.trainingSemester!=exclude].copy()
 
     data.loc[:,incomplete]=data.loc[:,incomplete].fillna("#")
 
@@ -182,3 +184,14 @@ class TrainingData:
     
     def decode(self):
         return self._code(direction="out")
+
+### Hx Methods
+def getBySemester(data,semester):
+    return data.loc[data.trainingSemester==semester,:].copy()
+
+def pasteClinicalLeader(data,q):
+    indices=["trainingSemester","trainingCompany","trainingUnit"]
+    data=data.set_index(indices)
+    q=q.set_index(indices)
+    data.update(q,overwrite=True)
+    return data.loc[:,cols]
