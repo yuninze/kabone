@@ -1,8 +1,7 @@
 import itertools
-import random
 import os
+import numpy as np
 import pandas as pd
-
 
 cols=[
     "trainingSemester",
@@ -39,25 +38,65 @@ colsIncomplete=[
 ]
 
 viewTrainingSemester={
-    "3-2.5-2022":("2023","3","동계"),
-    "3-1.0-2023":("","",),
-    "3-1.5-2023":("",""),
-    "3-2.0-2023":("",""),
-    "3-2.5-2023":("",""),
-    "4-1.0-2023":("",""),
-    "4-1.5-2023":("",""),
+    "3-2.5-2022":("2023","3","동계","1"),
+    "3-1.0-2023":("2023","3","학기중","1"),
+    "3-1.5-2023":("2023","3","하계","2"),
+    "3-2.0-2023":("2023","3","학기중","2"),
+    "3-2.5-2023":("2024","4","동계","1"),
+    "4-1.0-2023":("2023","4","학기중","1"),
+    "4-1.5-2023":("2023","4","하계","2"),
 }
 
+viewTrainingTeacherReal={
+    True:"전임",
+    False:"비전임"
+}
 
 def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
-    now=data[data.trainingSemester!=exclude].copy()
-    fut=data[data.trainingSemester==exclude].copy()
+    now=data[data.trainingSemester.ne(exclude)].copy()
+    fut=data[data.trainingSemester.eq(exclude)].copy()
 
-    q=pd.DataFrame({
-        
-    })
+    def _objectify(d:pd.DataFrame,targetCols=colsIncomplete):
+        d.loc[:,targetCols]=d.loc[:,targetCols].fillna("#")
+        return d
 
-    return {"now":now,"fut":fut}
+    def _mapper(d:pd.DataFrame):
+        return pd.DataFrame({
+            "학기상세":d.trainingSemester.apply(
+                lambda q:viewTrainingSemester[q][2]
+            ),
+            "학기":d.trainingSemester.apply(
+                lambda q:viewTrainingSemester[q][3]
+            ),
+            "교과목명":d.trainingClass,
+            "학년":d.trainingClassYear,
+            "학점":d.trainingClassCredit,
+            "시수":d.trainingClassCreditMoney,
+            "학번":d.idx,
+            "성명":d.name.apply(
+                lambda q:q.strip().replace("*","").replace(" ","")
+            ),
+            "성별":np.nan,
+            "실습기관명":d.trainingCompany,
+            "실습병동(진료과)":d.loc[:,["trainingUnit","trainingLeaderDepartment"]].apply(
+                lambda q:f"{q.iat[0]}({q.iat[1]})",
+                axis=1
+            ),
+            "교과목 담당교원":d.trainingTeacher.apply(
+                lambda q:q.strip().replace(" ","")
+            ),
+            "교원구분":d.trainingTeacherReal.apply(
+                lambda q:viewTrainingTeacherReal[q] if pd.notna(q) else "#"
+            ),
+            "실습단위":d.trainingGroup.str.strip(),
+            "실습일자":d.trainingPeriod.str.strip(),
+            "실습숙소사용":d.dormUsed.apply(
+                lambda q:"Y" if pd.notna(q) and q else "N"
+            )
+        })
+
+    final=[_mapper(_objectify(x)) for x in (now,fut)]
+    return final
 
 def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
     data=data[data.trainingSemester!=exclude].copy()
@@ -98,7 +137,6 @@ def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
 
     return q
 
-
 class Tr:
     def __init__(self,data,key,
         charMapDataPath="c:/code/charmapdata.csv"
@@ -137,7 +175,7 @@ class Tr:
                 ["".join(w) for w in [self.data[q].astype(str).unique() for q in self.cols]]
             )))
             
-            gen=np.random.default_rng(seed=key)
+            gen=np.random.default_rng(seed=self.key)
             sieve=gen.choice(len(charIn),size=len(charIn),replace=False)
             
             charOut=[charIn[q] for q in sieve]
@@ -192,8 +230,7 @@ class Tr:
     def decode(self):
         return self._code(direction="out")
 
-
-### Hx Methods
+### Hx
 def getBySemester(data,semester):
     return data.loc[data.trainingSemester==semester,:].copy()
 
@@ -203,3 +240,17 @@ def pasteClinicalLeader(data,q):
     q=q.set_index(indices)
     data.update(q,overwrite=True)
     return data.loc[:,cols]
+
+## 숙소 시트 전처리
+# sooksou.worksheet
+# dormUseCols=[
+#     "idx",
+#     "trainingSemester",
+#     "dormUsed",
+#     "dorm"
+# ]
+# y.loc[:,"hak"]=y.hak.apply(
+#     lambda q:[w.strip() for w in q.split(",")] if len(q)>4 else ""
+# )
+# y=y.explode("hak")
+# y.loc[:,"hak"]=y.hak.replace("","#").apply(lambda q:q[0])
