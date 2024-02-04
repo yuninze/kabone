@@ -1,6 +1,5 @@
 #temps
 .ipynb_checkpoints/
-ct/.ipynb_checkpoints/
 .dep/
 .vscode/
 .DS_Store/
@@ -19,6 +18,7 @@ __pycache__/
 *.csv
 
 #credentials
+*.key
 key
 id
 id.json
