@@ -241,7 +241,99 @@ def pasteClinicalLeader(data,q):
     data.update(q,overwrite=True)
     return data.loc[:,cols]
 
-## 숙소 시트 전처리
+## 결과 보고용 그림
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set(font="Pretendard",style="whitegrid")
+
+## 문항별 mean agg
+ax=sns.barplot(score,x="index",y="score",palette="deep",alpha=.8,)
+for value in ax.containers:
+	ax.bar_label(value)
+ax.set_title("문항별 평균")
+ax.set_ylabel("점수")
+ax.set_xlabel("문항")
+ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
+ax.set_yscale("log")
+ax.figure.subplots_adjust(top=.90,bottom=.15,left=.20)
+plt.show()
+
+
+ax.yaxis.set_ticks([q/100 for q in range(405,451,5)])
+
+## byClass
+byClass=maanzock.groupby(["trainingClass"])[[f"q{q}" for q in range(1,11)]].mean().reset_index()
+
+ax=sns.catplot(byClass.melt(id_vars="trainingClass"),hue="trainingClass",x="variable",y="value",kind="bar",alpha=.6).set(title="과목별 평균")
+ax.set_axis_labels("","점수")
+ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
+ax.set_yscale("log")
+ax.legend.set_title("과목")
+
+ax.figure.subplots_adjust(top=.95,bottom=.15)
+plt.show()
+
+## byCompany
+byCompany=maanzock.groupby(["trainingCompany"])[[f"q{q}" for q in range(1,11)]].mean().round(2).reset_index()
+
+ax=sns.catplot(byCompany.melt(id_vars="trainingCompany"),hue="trainingCompany",x="variable",y="value",kind="bar",alpha=.7,height=8,aspect=2).set(title="기관별 평균")
+ax.set_axis_labels("","점수")
+ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
+ax.legend.set_title("기관")
+
+ax.figure.subplots_adjust(top=.95,bottom=.15)
+plt.show()
+
+## 산협 전처리
+# import datetime
+
+# hy.loc[:,"hyPurpose"]=hy.hyPurpose.apply(lambda q:q.strip().replace(" ","").split(","))
+
+# hy=hy.explode("hyPurpose")
+
+# def sanitiseHyDate(e):
+# 	e=e.strip()
+	
+# 	if ~e.startswith("~"):
+# 		e=e.replace("~","")
+		
+# 	if ~e.endswith("."):
+# 		e=e+"."
+	
+# 	return e
+
+# ima=pd.to_datetime("2024-03-01")
+
+# hy["hyDurationLast"]=hy.hyDuration.apply(lambda q:q[-11:]).map(sanitiseHyDate).pipe(pd.to_datetime,format="mixed",dayfirst=False)
+
+# hy["hyDurationDelta"]=(hy.hyDurationLast-ima).apply(lambda q:q.days)
+# hy["hyValid"]=hy.hyDurationDelta.apply(lambda q:True if q>0 else False)
+
+## 현지 전처리
+# meet.apply(
+# 	lambda q:f'- {q.at["trainingClass"]} 진행간 목표, 지도 및 평가 방법 논의(기관측 {", ".join(q.at["part1"].split(","))} 참여)\n- 특수 부서 배치를 통한 실습 목표 달성 방안 논의\n- COVID 예방 등 감염관리 교육, 실습생의 능동적 실습 참여 방법 논의',
+# 	axis=1
+# )
+
+# okzoo["kaboneDatetime"]=okzoo.apply(
+# 	lambda q:f'{q.at["date"][:11].strip()}{os.linesep}{q.at["date"][-5:].strip()}{os.linesep}{q.at["location"]}',
+# 	axis=1
+# )
+
+# ppl=meet[["part0","part1"]]
+# ppl=ppl.apply(lambda q:q.str.split(","))
+
+# def peoples(s):
+# 	if len(s)==1:
+# 		return s[0]
+# 	else:
+# 		return f"{s[0]} 등 {len(s)}명"
+
+# ppl.map(peoples)
+
+
+## 숙소 전처리
 # sooksou.worksheet
 # dormUseCols=[
 #     "idx",
