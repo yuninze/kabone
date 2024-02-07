@@ -52,7 +52,7 @@ viewTrainingTeacherReal={
     False:"비전임"
 }
 
-def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023"):
+def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023")->pd.DataFrame:
     now=data[data.trainingSemester.ne(exclude)].copy()
     fut=data[data.trainingSemester.eq(exclude)].copy()
 
@@ -240,50 +240,6 @@ def pasteClinicalLeader(data,q):
     q=q.set_index(indices)
     data.update(q,overwrite=True)
     return data.loc[:,cols]
-
-## 결과 보고용 그림
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-sns.set(font="Pretendard",style="whitegrid")
-
-## 문항별 mean agg
-ax=sns.barplot(score,x="index",y="score",palette="deep",alpha=.8,)
-for value in ax.containers:
-	ax.bar_label(value)
-ax.set_title("문항별 평균")
-ax.set_ylabel("점수")
-ax.set_xlabel("문항")
-ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
-ax.set_yscale("log")
-ax.figure.subplots_adjust(top=.90,bottom=.15,left=.20)
-plt.show()
-
-
-ax.yaxis.set_ticks([q/100 for q in range(405,451,5)])
-
-## byClass
-byClass=maanzock.groupby(["trainingClass"])[[f"q{q}" for q in range(1,11)]].mean().reset_index()
-
-ax=sns.catplot(byClass.melt(id_vars="trainingClass"),hue="trainingClass",x="variable",y="value",kind="bar",alpha=.6).set(title="과목별 평균")
-ax.set_axis_labels("","점수")
-ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
-ax.set_yscale("log")
-ax.legend.set_title("과목")
-
-ax.figure.subplots_adjust(top=.95,bottom=.15)
-plt.show()
-
-## byCompany
-byCompany=maanzock.groupby(["trainingCompany"])[[f"q{q}" for q in range(1,11)]].mean().round(2).reset_index()
-
-ax=sns.catplot(byCompany.melt(id_vars="trainingCompany"),hue="trainingCompany",x="variable",y="value",kind="bar",alpha=.7,height=8,aspect=2).set(title="기관별 평균")
-ax.set_axis_labels("","점수")
-ax.set_xticklabels([f"문항 {q}" for q in range(1,11)],rotation=30)
-ax.legend.set_title("기관")
-
-ax.figure.subplots_adjust(top=.95,bottom=.15)
-plt.show()
 
 ## 산협 전처리
 # import datetime
