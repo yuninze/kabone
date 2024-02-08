@@ -242,29 +242,37 @@ def pasteClinicalLeader(data,q):
     return data.loc[:,cols]
 
 ## 산협 전처리
-# import datetime
+import datetime
 
-# hy.loc[:,"hyPurpose"]=hy.hyPurpose.apply(lambda q:q.strip().replace(" ","").split(","))
+hyColumnView={
+    "연도":"year",
+    "기관":"trainingCompany",
+    "목적":"hyPurpose",
+    "기간":""
+}
 
-# hy=hy.explode("hyPurpose")
+hy.columns=list(map(lambda q:hyColumnView[q]))
 
-# def sanitiseHyDate(e):
-# 	e=e.strip()
-	
-# 	if ~e.startswith("~"):
-# 		e=e.replace("~","")
-		
-# 	if ~e.endswith("."):
-# 		e=e+"."
-	
-# 	return e
+hy.loc[:,"hyPurpose"]=hy.hyPurpose.apply(lambda q:q.strip().replace(" ","").split(","))
 
-# ima=pd.to_datetime("2024-03-01")
+hy=hy.explode("hyPurpose")
 
-# hy["hyDurationLast"]=hy.hyDuration.apply(lambda q:q[-11:]).map(sanitiseHyDate).pipe(pd.to_datetime,format="mixed",dayfirst=False)
+def sanitiseHyDate(e):
+	e=e.strip()
 
-# hy["hyDurationDelta"]=(hy.hyDurationLast-ima).apply(lambda q:q.days)
-# hy["hyValid"]=hy.hyDurationDelta.apply(lambda q:True if q>0 else False)
+	if ~e.startswith("~"):
+		e=e.replace("~","")
+    
+	if ~e.endswith("."):
+		e=e+"."
+
+	return e
+
+ima=pd.to_datetime("2024-03-01")
+
+hy["hyDurationLast"]=hy.hyDuration.apply(lambda q:q[-11:]).map(sanitiseHyDate).pipe(pd.to_datetime,format="mixed",dayfirst=False)
+hy["hyDurationDelta"]=(hy.hyDurationLast-ima).apply(lambda q:q.days)
+hy["hyValid"]=hy.hyDurationDelta.apply(lambda q:True if q>0 else False)
 
 ## 현지 전처리
 # meet.apply(
