@@ -1,5 +1,6 @@
 import itertools
 import os
+import datetime
 import numpy as np
 import pandas as pd
 
@@ -241,38 +242,55 @@ def pasteClinicalLeader(data,q):
     data.update(q,overwrite=True)
     return data.loc[:,cols]
 
-## 산협 전처리
-import datetime
+## 산협
+def hyoupyak(fpname:str,final:str="2024-03-01")->pd.DataFrame:
+    hyColumnView={
+        "연도":"hyYear",
+        "기관":"trainingCompany",
+        "목적":"hyPurpose",
+        "기간":"hyDuration",
+        "최종일":"hyDurationLast",
+        "잔존일":"hyTheta",
+        "행사":"hyExec",
+    }
 
-hyColumnView={
-    "연도":"year",
-    "기관":"trainingCompany",
-    "목적":"hyPurpose",
-    "기간":""
-}
+    d=pd.read_csv(fpname)
 
-hy.columns=list(map(lambda q:hyColumnView[q]))
+    def _sanitiseComma(d:pd.DataFrame)->pd.DataFrame:
+        hy.loc[:,"hyPurpose"]=hy.hyPurpose.apply(
+            lambda q:q.strip().replace(" ","").split(",")
+        )
 
-hy.loc[:,"hyPurpose"]=hy.hyPurpose.apply(lambda q:q.strip().replace(" ","").split(","))
+    if any(list(map(isascii(),list(d.columns[-1])))):
+        hy.columns=list(map(lambda q:hyColumnView[q],hy.columns))
+        hy=_sanitiseComma(d).explode("hyPurpose")
 
-hy=hy.explode("hyPurpose")
+    def _sanitiseDatestring(e):
+        e=e.strip().replace(" ","")
 
-def sanitiseHyDate(e):
-	e=e.strip()
+        if ~e.startswith("~"):
+            e=e.replace("~","")
+        
+        if ~e.endswith("."):
+            e=e+"."
 
-	if ~e.startswith("~"):
-		e=e.replace("~","")
+        return e
+
+    final=pd.to_datetime(final)
+
+    hy["hyDurationLast"]=hy.hyDuration.apply(
+        lambda q:q[-11:]).map(_sanitiseDatestring).pipe(pd.to_datetime,format="mixed",dayfirst=False)
     
-	if ~e.endswith("."):
-		e=e+"."
+    hy["hyTheta"]=(hy.hyDurationLast-final).apply(lambda q:q.days)
+    
+    hy["hyExec"]=hy.hyTheta.apply(lambda q:True if q>0 else False)
 
-	return e
+    hy.columns=list(map(
+        lambda q:{y:x for x,y in hyColumnView.items()}[q],
+        hy.columns
+    ))
 
-ima=pd.to_datetime("2024-03-01")
-
-hy["hyDurationLast"]=hy.hyDuration.apply(lambda q:q[-11:]).map(sanitiseHyDate).pipe(pd.to_datetime,format="mixed",dayfirst=False)
-hy["hyDurationDelta"]=(hy.hyDurationLast-ima).apply(lambda q:q.days)
-hy["hyValid"]=hy.hyDurationDelta.apply(lambda q:True if q>0 else False)
+    return hy
 
 ## 현지 전처리
 # meet.apply(
