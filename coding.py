@@ -53,38 +53,69 @@ viewTrainingTeacherReal={
     False:"비전임"
 }
 
-def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023")->pd.DataFrame:
-    now=data[data.trainingSemester.ne(exclude)].copy()
-    fut=data[data.trainingSemester.eq(exclude)].copy()
+viewTrainingPeriod={
+    "성인간호학실습1":3,
+    "성인간호학실습2":3,
+    "성인간호학실습3":3,
+    "아동간호학실습":3,
+    "여성건강간호학실습":3,
+    "지역사회간호학실습":3,
+    "정신간호학실습":3,
+    "통합간호실습":2,
+    "간호관리학실습":1
+}
 
+def kabone(
+        data:pd.DataFrame,
+        exclude="3-2.5-2023",
+        type=2232
+    )->pd.DataFrame:
+    
     def _objectify(d:pd.DataFrame,targetCols=colsIncomplete):
         d.loc[:,targetCols]=d.loc[:,targetCols].fillna("#")
         return d
 
+    def _divide(e):
+        divider=e.find("~")
+        x=[pd.to_datetime(q,yearfirst=False) for q in (e[:divider].strip(),e[divider+1:].strip())]
+        return x
+    
     def _mapper(d:pd.DataFrame):
         return pd.DataFrame({
-            "학기상세":d.trainingSemester.apply(
-                lambda q:viewTrainingSemester[q][2]
-            ),
-            "학기":d.trainingSemester.apply(
-                lambda q:viewTrainingSemester[q][3]
-            ),
-            "교과목명":d.trainingClass,
-            "학년":d.trainingClassYear,
-            "학점":d.trainingClassCredit,
-            "시수":d.trainingClassCreditMoney,
             "학번":d.idx,
             "성명":d.name.apply(
                 lambda q:q.strip().replace("*","").replace(" ","")
             ),
             "성별":np.nan,
+            "학년":d.trainingClassYear,
+            "학기상세":d.trainingSemester.apply(
+                lambda q:viewTrainingSemester[q][2]
+            ),
+            "연도":d.trainingSemester.apply(
+                lambda q:viewTrainingSemester[q][0]
+            ),
+            "학기":d.trainingSemester.apply(
+                lambda q:viewTrainingSemester[q][3]
+            ),
+            "교과목명":d.trainingClass,
+            "학점":d.trainingClassCredit,
+            "시수":d.trainingClassCreditMoney,
+            "과목명\n학년\n(학점x시수x주수=실습시간)":d.loc[:,["trainingClass","trainingClassYear","trainingClassCredit","trainingClassCreditMoney"]].apply(
+                lambda q:f"{q.iat[0]}\n({q.iat[1]}학년)\n{int(q.iat[2])*int(q.iat[3])*viewTrainingPeriod[q.iat[0]]}",
+                axis=1
+            ),
             "실습기관명":d.trainingCompany,
             "실습병동(진료과)":d.loc[:,["trainingUnit","trainingLeaderDepartment"]].apply(
                 lambda q:f"{q.iat[0]}({q.iat[1]})",
                 axis=1
             ),
-            "교과목 담당교원":d.trainingTeacher.apply(
-                lambda q:q.strip().replace(" ","")
+            "교과목 담당교원(전임)":d[["trainingTeacher","trainingTeacherReal"]].apply(
+                lambda q:q.iat[0] if q.iat[1] else np.nan,
+                axis=1
+            ),
+            "교과목 담당교원(비전임)":d[["trainingTeacher","trainingTeacherReal"]].apply(
+                lambda q:q.iat[0] if q.iat[1]==False else np.nan,
+                axis=1
             ),
             "교원구분":d.trainingTeacherReal.apply(
                 lambda q:viewTrainingTeacherReal[q] if pd.notna(q) else "#"
@@ -92,15 +123,19 @@ def trDataBongsoon(data:pd.DataFrame,exclude="3-2.5-2023")->pd.DataFrame:
             "실습단위":d.trainingGroup.str.strip(),
             "실습일자":d.trainingPeriod.str.strip(),
             "실습숙소사용":d.dormUsed.apply(
-                lambda q:"Y" if pd.notna(q) and q else "N"
+                lambda q:"N" if q=="#" else "Y"
             )
         })
-
-    final=[_mapper(_objectify(x)) for x in (now,fut)]
-    return final
+    
+    now=data[data.trainingSemester.ne(exclude)]
+    fut=data[data.trainingSemester.eq(exclude)]
+    
+    x=[_mapper(_objectify(x)) for x in (now,fut)]
+    
+    return x[0]
 
 def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
-    data=data[data.trainingSemester!=exclude].copy()
+    data=data[data.trainingSemester!=exclude]
 
     data.loc[:,colsIncomplete]=data.loc[:,colsIncomplete].fillna("#")
 
