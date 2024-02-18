@@ -68,10 +68,10 @@ viewTrainingPeriod={
 def kabone(
         data:pd.DataFrame,
         exclude="3-2.5-2023",
-        type=2232
+        type=None
     )->pd.DataFrame:
     
-    def _objectify(d:pd.DataFrame,targetCols=colsIncomplete):
+    def _objectify(d,targetCols=colsIncomplete):
         d.loc[:,targetCols]=d.loc[:,targetCols].fillna("#")
         return d
 
@@ -127,51 +127,82 @@ def kabone(
             )
         })
     
+    def _5555(data:pd.DataFrame):
+        trainingScene=data[[
+            "trainingLeader",
+            "trainingLeaderPosition",
+            "trainingLeaderDegree",
+            "trainingLeaderRn",
+            "trainingLeaderExperience"
+        ]].rename({
+            "trainingLeader":"성명",
+            "trainingLeaderPosition":"직위",
+            "trainingLeaderDegree":"최종학위",
+            "trainingLeaderRn":"간호사 면허 유무",
+            "trainingLeaderExperience":"임상경력"
+        },axis=1)
+        trainingScene.loc[:,"간호사 면허 유무"]="유"
+
+        x=pd.DataFrame({
+            "연도":"2023",
+            "학기":data.trainingSemester.apply(
+                lambda q:"1" if q.endswith("1") or q.endswith("2.5") else "2"
+            ),
+            "실습기관명":data.trainingCompany,
+            "실습단위":data[["trainingGroup","trainingUnit","trainingLeaderDepartment"]].apply(
+                lambda q:f"{q.iat[0]}({q.iat[1]}/{q.iat[2]})",
+                axis=1
+            ),
+            "교과목명":data.trainingClass
+        })
+
+        indices=["연도","학기","실습기관명","실습단위"]
+
+        final=pd.concat([x,trainingScene],axis=1).sort_values(indices).drop_duplicates(indices,ignore_index=True)
+
+        return q
+        
+    def _2232(d:pd.DataFrame)->pd.DataFrame:
+        d=d.loc[:,[
+            "연도",
+            "학기",
+            "과목명",
+            "과목명\n학년\n(학점x시수x주수=실습시간)",
+            "실습기관명",
+            "실습병동(진료과)",
+            "교과목 담당교원(전임)",
+            "교과목 담당교원(비전임)"
+        ]
+        
+        trGroupUnitIndices=[
+            "trainingSemester",
+            "trainingClass",
+            "trainingCompany",
+            "trainingUnit"
+        ]
+        
+        trGroupUnit=d.groupby(trGroupUnitIndices).trainingGroup.transform("nunique").rename("trGroupUnit")
+        trIdxCountPerUnit=d.groupby(trGroupUnitIndices).idx.transform("nunique").rename("trIdxCountPerUnit")
+        trPeriod=d.trainingPeriod
+        
+        x=pd.concat([d,trGroupUnit,trIdxCountPerUnit],axis=1)
+        
+        final=x.drop_duplicates().sort_values(list(x.columns[:-2])).assign(계="")
+        
+        return final
+        
     now=data[data.trainingSemester.ne(exclude)]
     fut=data[data.trainingSemester.eq(exclude)]
     
+    if type==5555:
+        return _5322(_objectify(now))
+    
     x=[_mapper(_objectify(x)) for x in (now,fut)]
     
-    return x[0]
-
-def trDataKabone(data:pd.DataFrame,exclude="3-2.5-2023"):
-    data=data[data.trainingSemester!=exclude]
-
-    data.loc[:,colsIncomplete]=data.loc[:,colsIncomplete].fillna("#")
-
-    trainingScene=data[[
-        "trainingLeader",
-        "trainingLeaderPosition",
-        "trainingLeaderDegree",
-        "trainingLeaderRn",
-        "trainingLeaderExperience"
-    ]].rename({
-        "trainingLeader":"성명",
-        "trainingLeaderPosition":"직위",
-        "trainingLeaderDegree":"최종학위",
-        "trainingLeaderRn":"간호사 면허 유무",
-        "trainingLeaderExperience":"임상경력"
-    },axis=1)
-    trainingScene.loc[:,"간호사 면허 유무"]="유"
-
-    q=pd.DataFrame({
-        "연도":"2023",
-        "학기":data.trainingSemester.apply(
-            lambda q:"1" if q.endswith("1") or q.endswith("2.5") else "2"
-        ),
-        "실습기관명":data.trainingCompany,
-        "실습단위":data[["trainingGroup","trainingUnit","trainingLeaderDepartment"]].apply(
-            lambda q:f"{q.iat[0]}({q.iat[1]}/{q.iat[2]})",
-            axis=1
-        ),
-        "교과목명":data.trainingClass
-    })
-
-    indices=["연도","학기","실습기관명","실습단위"]
-
-    q=pd.concat([q,trainingScene],axis=1).sort_values(indices).drop_duplicates(indices,ignore_index=True)
-
-    return q
+    if type==2232:
+        return _2232(x[0])
+    elif type is None:
+        return x
 
 class Tr:
     def __init__(self,data,key,
@@ -327,7 +358,7 @@ def hyoupyak(fpname:str,final:str="2024-03-01")->pd.DataFrame:
 
     return hy
 
-## 현지 전처리
+## 현지 후처리 kaboneExt
 # meet.apply(
 # 	lambda q:f'- {q.at["trainingClass"]} 진행간 목표, 지도 및 평가 방법 논의(기관측 {", ".join(q.at["part1"].split(","))} 참여)\n- 특수 부서 배치를 통한 실습 목표 달성 방안 논의\n- COVID 예방 등 감염관리 교육, 실습생의 능동적 실습 참여 방법 논의',
 # 	axis=1
@@ -348,7 +379,6 @@ def hyoupyak(fpname:str,final:str="2024-03-01")->pd.DataFrame:
 # 		return f"{s[0]} 등 {len(s)}명"
 
 # ppl.map(peoples)
-
 
 ## 숙소 전처리
 # sooksou.worksheet
