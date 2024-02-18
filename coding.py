@@ -172,7 +172,7 @@ def kabone(
             "실습병동(진료과)",
             "교과목 담당교원(전임)",
             "교과목 담당교원(비전임)"
-        ]
+        ]]
         
         trGroupUnitIndices=[
             "trainingSemester",
