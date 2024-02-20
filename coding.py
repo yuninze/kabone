@@ -295,18 +295,3 @@ hy["hyValid"]=hy.hyDurationDelta.apply(lambda q:True if q>0 else False)
 # 		return f"{s[0]} 등 {len(s)}명"
 
 # ppl.map(peoples)
-
-
-## 숙소 전처리
-# sooksou.worksheet
-# dormUseCols=[
-#     "idx",
-#     "trainingSemester",
-#     "dormUsed",
-#     "dorm"
-# ]
-# y.loc[:,"hak"]=y.hak.apply(
-#     lambda q:[w.strip() for w in q.split(",")] if len(q)>4 else ""
-# )
-# y=y.explode("hak")
-# y.loc[:,"hak"]=y.hak.replace("","#").apply(lambda q:q[0])
