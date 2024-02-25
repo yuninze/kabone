@@ -358,38 +358,23 @@ def hyoupyak(fpname:str,final:str="2024-03-01")->pd.DataFrame:
 
     return hy
 
-## 현지 후처리 kaboneExt
-# meet.apply(
-# 	lambda q:f'- {q.at["trainingClass"]} 진행간 목표, 지도 및 평가 방법 논의(기관측 {", ".join(q.at["part1"].split(","))} 참여)\n- 특수 부서 배치를 통한 실습 목표 달성 방안 논의\n- COVID 예방 등 감염관리 교육, 실습생의 능동적 실습 참여 방법 논의',
-# 	axis=1
-# )
+## Assigning Group
+from sklearn import cluster
+from sklearn import preprocessing
 
-# okzoo["kaboneDatetime"]=okzoo.apply(
-# 	lambda q:f'{q.at["date"][:11].strip()}{os.linesep}{q.at["date"][-5:].strip()}{os.linesep}{q.at["location"]}',
-# 	axis=1
-# )
+def getTrainingGroup(d)->pd.DataFrame:
+    indices=["trainingSerie","trainingClass","trainingCompany"]
+    
+    groups=d.groupby(indices).ngroup().factorize()[0]+1
+    
+    Encoder=preprocessing.OneHotEncoder()
+    x=Encoder.fit_transform(d[indices])
+    
+    Grouper=cluster.AgglomerativeClustering(n_clusters=groups.max())
+    Grouper.fit(x.toarray())
 
-# ppl=meet[["part0","part1"]]
-# ppl=ppl.apply(lambda q:q.str.split(","))
+    return pd.DataFrame({
+        "trainingGroup":Grouper.labels_,
+        "trainingGroupAlt":groups
+    })
 
-# def peoples(s):
-# 	if len(s)==1:
-# 		return s[0]
-# 	else:
-# 		return f"{s[0]} 등 {len(s)}명"
-
-# ppl.map(peoples)
-
-## 숙소 전처리
-# sooksou.worksheet
-# dormUseCols=[
-#     "idx",
-#     "trainingSemester",
-#     "dormUsed",
-#     "dorm"
-# ]
-# y.loc[:,"hak"]=y.hak.apply(
-#     lambda q:[w.strip() for w in q.split(",")] if len(q)>4 else ""
-# )
-# y=y.explode("hak")
-# y.loc[:,"hak"]=y.hak.replace("","#").apply(lambda q:q[0])
