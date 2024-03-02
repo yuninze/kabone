@@ -54,15 +54,15 @@ viewTrainingTeacherReal={
 }
 
 viewTrainingPeriod={
-    "성인간호학실습1":3,
-    "성인간호학실습2":3,
-    "성인간호학실습3":3,
-    "아동간호학실습":3,
-    "여성건강간호학실습":3,
-    "지역사회간호학실습":3,
-    "정신간호학실습":3,
-    "통합간호실습":2,
-    "간호관리학실습":1
+    "성인간호학실습1":15,
+    "성인간호학실습2":15,
+    "성인간호학실습3":15,
+    "아동간호학실습":15,
+    "여성건강간호학실습":15,
+    "지역사회간호학실습":15,
+    "정신간호학실습":15,
+    "통합간호실습":15,
+    "간호관리학실습":15
 }
 
 def kabone(
@@ -97,16 +97,16 @@ def kabone(
             "학기":d.trainingSemester.apply(
                 lambda q:viewTrainingSemester[q][3]
             ),
-            "교과목명":d.trainingClass,
+            "과목명":d.trainingClass,
             "학점":d.trainingClassCredit,
             "시수":d.trainingClassCreditMoney,
             "과목명\n학년\n(학점x시수x주수=실습시간)":d.loc[:,["trainingClass","trainingClassYear","trainingClassCredit","trainingClassCreditMoney"]].apply(
-                lambda q:f"{q.iat[0]}\n({q.iat[1]}학년)\n{int(q.iat[2])*int(q.iat[3])*viewTrainingPeriod[q.iat[0]]}",
+                lambda q:f"{q.iat[0]}\n({q.iat[1]}학년)\n({q.iat[2]}학점\n×\n{q.iat[3]}시수\n×\n{viewTrainingPeriod[q.iat[0]]}주\n=\n{int(q.iat[2])*int(q.iat[3])*viewTrainingPeriod[q.iat[0]]}시간)",
                 axis=1
             ),
             "실습기관명":d.trainingCompany,
             "실습병동(진료과)":d.loc[:,["trainingUnit","trainingLeaderDepartment"]].apply(
-                lambda q:f"{q.iat[0]}({q.iat[1]})",
+                lambda q:f"{q.iat[0]}\n({q.iat[1]})",
                 axis=1
             ),
             "교과목 담당교원(전임)":d[["trainingTeacher","trainingTeacherReal"]].apply(
@@ -121,7 +121,7 @@ def kabone(
                 lambda q:viewTrainingTeacherReal[q] if pd.notna(q) else "#"
             ),
             "실습단위":d.trainingGroup.str.strip(),
-            "실습일자":d.trainingPeriod.str.strip(),
+            "실습일자":d.trainingPeriod.apply(lambda q:q[:q.find("(")].replace(" ","")),
             "실습숙소사용":d.dormUsed.apply(
                 lambda q:"N" if q=="#" else "Y"
             )
@@ -159,11 +159,20 @@ def kabone(
         indices=["연도","학기","실습기관명","실습단위"]
 
         final=pd.concat([x,trainingScene],axis=1).sort_values(indices).drop_duplicates(indices,ignore_index=True)
-
+        
         return q
         
     def _2232(d:pd.DataFrame)->pd.DataFrame:
-        d=d.loc[:,[
+
+        trGroupUnitIndices=[
+            "연도",
+            "학기",
+            "과목명\n학년\n(학점x시수x주수=실습시간)",
+            "실습기관명",
+            "실습병동(진료과)"
+        ]
+        
+        d_=d.loc[:,[
             "연도",
             "학기",
             "과목명",
@@ -171,23 +180,33 @@ def kabone(
             "실습기관명",
             "실습병동(진료과)",
             "교과목 담당교원(전임)",
-            "교과목 담당교원(비전임)"
+            "교과목 담당교원(비전임)",
+            "실습단위",
+            "학번",
+            "실습일자",
+            "학년",
         ]]
-        
-        trGroupUnitIndices=[
-            "trainingSemester",
-            "trainingClass",
-            "trainingCompany",
-            "trainingUnit"
-        ]
-        
-        trGroupUnit=d.groupby(trGroupUnitIndices).trainingGroup.transform("nunique").rename("trGroupUnit")
-        trIdxCountPerUnit=d.groupby(trGroupUnitIndices).idx.transform("nunique").rename("trIdxCountPerUnit")
-        trPeriod=d.trainingPeriod
-        
-        x=pd.concat([d,trGroupUnit,trIdxCountPerUnit],axis=1)
-        
-        final=x.drop_duplicates().sort_values(list(x.columns[:-2])).assign(계="")
+
+        e=d_.groupby(trGroupUnitIndices)
+
+        trGroups=[", ".join(q) for q in e.실습단위.unique()]
+        trPeriod=[",\n".join(q) for q in e.실습일자.unique()]
+        trGroupsIdxs=e.학번.nunique().rename("학생배치인원").reset_index().assign(
+            실습단위명=trGroups,
+            실습기간=trPeriod,
+        )
+
+        final=trGroupsIdxs.merge(
+            d_[trGroupUnitIndices+["교과목 담당교원(전임)","교과목 담당교원(비전임)"]],
+            on=trGroupUnitIndices,
+            how="left"
+        ).drop_duplicates()
+
+        final=final.assign(
+            계=final.loc[:,trGroupUnitIndices[2]].apply(
+                lambda q:"".join([w for w in q[-7:] if w.isdigit()])
+            )
+        )
         
         return final
         
@@ -363,7 +382,7 @@ from sklearn import cluster
 from sklearn import preprocessing
 
 def getTrainingGroup(d)->pd.DataFrame:
-    indices=["trainingSerie","trainingClass","trainingCompany"]
+    indices=["trainingPeriod","trainingCompany","trainingClass"]
     
     groups=d.groupby(indices).ngroup().factorize()[0]+1
     
@@ -374,7 +393,7 @@ def getTrainingGroup(d)->pd.DataFrame:
     Grouper.fit(x.toarray())
 
     return pd.DataFrame({
-        "trainingGroup":Grouper.labels_,
+        "trainingGroup":(Grouper.labels_)+1,
         "trainingGroupAlt":groups
     })
 
