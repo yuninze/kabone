@@ -378,12 +378,16 @@ def hyoupyak(fpname:str,final:str="2024-03-01")->pd.DataFrame:
     return hy
 
 ## Assigning Group
-from sklearn import cluster
-from sklearn import preprocessing
-
-def getTrainingGroup(d)->pd.DataFrame:
-    indices=["trainingPeriod","trainingCompany","trainingClass"]
+def getTrainingGroup(
+        d,
+        indices=["trainingPeriod","trainingCompany","trainingClass"]
+    )->pd.DataFrame:
+    from sklearn import cluster
+    from sklearn import preprocessing
     
+    if len([q for q in indices if q in d.columns]==len(indices)):
+        raise IndexError("unmatching indices")
+
     groups=d.groupby(indices).ngroup().factorize()[0]+1
     
     Encoder=preprocessing.OneHotEncoder()
